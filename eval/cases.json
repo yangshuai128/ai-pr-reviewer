@@ -1,0 +1,10 @@
+[
+  {
+    "pr_url": "https://github.com/owner/repo/pull/1",
+    "known_issues": ["未做空值判断可能崩溃", "SQL 注入风险"]
+  },
+  {
+    "pr_url": "https://github.com/owner/repo/pull/2",
+    "known_issues": ["资源未关闭可能泄漏"]
+  }
+]
