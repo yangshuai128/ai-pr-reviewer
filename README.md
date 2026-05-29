@@ -17,7 +17,9 @@
 
 ## 📸 运行截图
 
-（待补充）
+用本工具评审自身 PR #1（`docs/improve-readme`）的结果：
+
+![自评审截图](docs/screenshots/self-review-pr1.png)
 
 ---
 
@@ -92,7 +94,9 @@ ai-pr-reviewer/
 │   ├── cases.json          # 评估用例
 │   └── run_eval.py         # 评估脚本（召回率）
 └── docs/
-    └── architecture.md     # 架构与设计决策说明
+    ├── architecture.md     # 架构与设计决策说明
+    └── screenshots/
+        └── self-review-pr1.png  # 自评审截图
 ```
 
 ---
@@ -120,15 +124,15 @@ ai-pr-reviewer/
 
 ### 设计思路参考（仅理念，代码原创）
 
-- **PR-Agent 的 PR 压缩策略**：启发了按文件信息价值排序、在总字符预算内分配上下文的思路（`context_builder.py`）
-- **CodeRabbit / Kodus 的 LLM + 静态混合架构**：启发了将 LLM 语义分析与 ruff 确定性检查分离、合并输出的设计（`static_analyzer.py` + `pipeline.py`）
+- **PR-Agent 的 PR 压缩策略**：启发了按文件信息价值排序、在总字符预算内分配上下文的思路（`src/context_builder.py`）
+- **CodeRabbit / Kodus 的 LLM + 静态混合架构**：启发了将 LLM 语义分析与 ruff 确定性检查分离、合并输出的设计（`src/static_analyzer.py` + `src/pipeline.py`）
 
 ### 原创实现
 
-- **PR 链接解析**：正则解析 GitHub PR URL，自动翻页拉取所有改动文件（`github_client.py`）
-- **上下文压缩与排序**：按 churn 量和文件类型打分排序，超预算时只保留变化行而非粗暴截断（`context_builder.py`）
-- **健壮 JSON 解析**：用正则提取模型返回中的第一个 `{...}`，容忍前后多余文字，失败时优雅兜底（`analyzer.py`）
-- **模块化流程编排**：将取数、上下文、LLM 分析、静态分析四个模块解耦，通过 `pipeline.py` 统一编排，CLI 和网页共用同一套逻辑
+- **PR 链接解析**：正则解析 GitHub PR URL，自动翻页拉取所有改动文件（`src/github_client.py`）
+- **上下文压缩与排序**：按 churn 量和文件类型打分排序，超预算时只保留变化行而非粗暴截断（`src/context_builder.py`）
+- **健壮 JSON 解析**：用 `re.findall` 收集所有 `{...}` 候选，从最长的开始尝试解析，失败时返回友好提示而非原始乱码（`src/analyzer.py`，此改动来自自评审 PR #1 发现的真实 bug）
+- **模块化流程编排**：将取数、上下文、LLM 分析、静态分析四个模块解耦，通过 `src/pipeline.py` 统一编排，CLI 和网页共用同一套逻辑
 - **CJK 友好的评估匹配**：评估脚本使用子串匹配而非精确匹配，适配中文风险描述（`eval/run_eval.py`）
 
 ---
