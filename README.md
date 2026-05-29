@@ -7,10 +7,23 @@
 
 ---
 
-## 📸 运行效果
+## 📖 项目背景
 
-> ⚠️ 待补充：在此处放 2–3 张实际运行截图（网页评审结果、命令行报告）。
-> 截图后用 `![评审结果](docs/screenshot1.png)` 这样的语法插入。演示视频链接也放这里。
+本项目是**七牛云 × XEngineer 暑期实训营题目三**的参赛作品。
+
+题目要求：基于大语言模型（LLM）构建一个 AI 代码评审助手，能够自动分析 GitHub Pull Request 的代码改动，输出变更总结、风险识别和改进建议，并体现对 PR-Agent、CodeRabbit 等业界工具的理解与原创实现。
+
+---
+
+## 📸 运行截图
+
+（待补充）
+
+---
+
+## 🎬 演示视频
+
+（待补充）
 
 ---
 
@@ -87,6 +100,36 @@ ai-pr-reviewer/
 ## 🧠 设计说明
 
 详见 [`docs/architecture.md`](docs/architecture.md)，回答了题目要求的三点：模型选择、上下文获取方式、未来扩展方向。
+
+---
+
+## 📦 第三方依赖说明
+
+| 包名 | 作用 |
+|------|------|
+| `requests` | 调用 GitHub REST API，拉取 PR 基本信息和 diff 文件列表 |
+| `anthropic` | 官方 Python SDK，调用 Claude 模型进行语义分析和问答 |
+| `streamlit` | 构建网页交互界面，提供评审模式和问答模式两种入口 |
+| `python-dotenv` | 从 `.env` 文件加载 API 密钥等敏感配置，避免硬编码 |
+| `ruff` | 高性能 Python 静态检查工具，用于混合架构中的确定性问题检测 |
+| `pyyaml` | 解析 `review_config.yaml`，支持用户自定义评审关注点 |
+
+---
+
+## 💡 原创性声明
+
+### 设计思路参考（仅理念，代码原创）
+
+- **PR-Agent 的 PR 压缩策略**：启发了按文件信息价值排序、在总字符预算内分配上下文的思路（`context_builder.py`）
+- **CodeRabbit / Kodus 的 LLM + 静态混合架构**：启发了将 LLM 语义分析与 ruff 确定性检查分离、合并输出的设计（`static_analyzer.py` + `pipeline.py`）
+
+### 原创实现
+
+- **PR 链接解析**：正则解析 GitHub PR URL，自动翻页拉取所有改动文件（`github_client.py`）
+- **上下文压缩与排序**：按 churn 量和文件类型打分排序，超预算时只保留变化行而非粗暴截断（`context_builder.py`）
+- **健壮 JSON 解析**：用正则提取模型返回中的第一个 `{...}`，容忍前后多余文字，失败时优雅兜底（`analyzer.py`）
+- **模块化流程编排**：将取数、上下文、LLM 分析、静态分析四个模块解耦，通过 `pipeline.py` 统一编排，CLI 和网页共用同一套逻辑
+- **CJK 友好的评估匹配**：评估脚本使用子串匹配而非精确匹配，适配中文风险描述（`eval/run_eval.py`）
 
 ---
 
