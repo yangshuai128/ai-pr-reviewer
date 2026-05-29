@@ -31,6 +31,43 @@ if mode == "评审模式":
                 else:
                     analysis = result["analysis"]
                     st.success("评审完成！")
+
+                    # ── 模块A：统计卡片 ──────────────────────────────────
+                    file_results = analysis.get("file_results", [])
+                    total_risks = sum(len(r.get("risks") or []) for r in file_results)
+                    high_conf_risks = sum(
+                        1 for r in file_results
+                        for rk in (r.get("risks") or [])
+                        if rk.get("confidence") == "高"
+                    )
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("📁 文件数", len(file_results))
+                    col2.metric("⚠️ 风险点总数", total_risks)
+                    col3.metric("🎯 高置信度风险", high_conf_risks)
+
+                    # ── 模块B：文件改动统计柱状图 ─────────────────────────
+                    st.subheader("📊 文件改动统计")
+                    import pandas as pd
+                    chart_data = pd.DataFrame({
+                        "文件": [r.get("filename", "未知") for r in file_results],
+                        "风险点数量": [len(r.get("risks") or []) for r in file_results],
+                    }).set_index("文件")
+                    st.bar_chart(chart_data)
+
+                    # ── 模块C：风险等级分布 ───────────────────────────────
+                    st.subheader("🎚️ 风险等级分布")
+                    level_counts = {"高": 0, "中": 0, "低": 0}
+                    for r in file_results:
+                        for rk in (r.get("risks") or []):
+                            level = rk.get("level", "")
+                            if level in level_counts:
+                                level_counts[level] += 1
+                    level_df = pd.DataFrame({
+                        "风险等级": list(level_counts.keys()),
+                        "数量": list(level_counts.values()),
+                    }).set_index("风险等级")
+                    st.bar_chart(level_df)
+
                     st.subheader("📋 整体总结")
                     st.write(analysis["overall_summary"])
 
