@@ -82,6 +82,35 @@ def fetch_pr(url: str):
     }
 
 
+def post_pr_comment(owner: str, repo: str, pr_number: int, body: str) -> str:
+    """向指定 PR 发布一条 PR 级评论（issues/{pr_number}/comments 端点）。
+    成功（HTTP 201）返回新评论的 html_url；失败抛出带中文说明的异常。
+
+    端点选择说明：
+    - issues/{pr_number}/comments ：PR 级评论（显示在 PR 讨论区），本函数使用此端点。
+    - pulls/{pr_number}/comments  ：行级（inline）评论，需要 diff_hunk 等额外参数，不是这里要做的。
+    """
+    token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        raise ValueError("未找到 GITHUB_TOKEN，请在 .env 中配置后重试")
+
+    url = f"https://api.github.com/repos/{owner}/{repo}/issues/{pr_number}/comments"
+    resp = requests.post(
+        url,
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+        },
+        json={"body": body},
+        timeout=30,
+    )
+    if resp.status_code != 201:
+        raise RuntimeError(
+            f"发布 PR 评论失败（HTTP {resp.status_code}）：{resp.json().get('message', resp.text)}"
+        )
+    return resp.json()["html_url"]
+
+
 if __name__ == "__main__":
     data = fetch_pr(input("输入 GitHub PR 链接来测试：").strip())
     print(f"\n标题：{data['title']}")

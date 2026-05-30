@@ -4,10 +4,11 @@ Streamlit 网页界面。运行：streamlit run app.py
 """
 import streamlit as st
 
-from src.github_client import fetch_pr
+from src.github_client import fetch_pr, parse_pr_url, post_pr_comment
 from src.context_builder import build_file_contexts
 from src.analyzer import answer_question
 from src.pipeline import run_review
+from src.reporter import build_markdown_comment
 
 st.set_page_config(page_title="AI PR Review 助手", page_icon="🤖", layout="wide")
 
@@ -63,6 +64,18 @@ if mode == "评审模式":
                                 st.markdown("**改进建议：**")
                                 for s in sugg:
                                     st.markdown(f"- {s}")
+
+                    # ── 发布到 GitHub PR ──────────────────────────────────
+                    st.divider()
+                    if st.button("📤 发布到 GitHub PR"):
+                        try:
+                            owner, repo, pr_number = parse_pr_url(pr_url)
+                            comment_body = build_markdown_comment(result)
+                            with st.spinner("正在发布评论..."):
+                                html_url = post_pr_comment(owner, repo, pr_number, comment_body)
+                            st.success(f"✅ 评论已发布：{html_url}")
+                        except Exception as post_err:
+                            st.error(f"发布失败：{post_err}")
             except Exception as e:
                 st.error(f"出错了：{e}")
 
