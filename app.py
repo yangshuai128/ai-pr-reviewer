@@ -271,6 +271,7 @@ if mode == "评审模式":
                                 for s in sugg:
                                     st.markdown(f"- {s}")
 
+<<<<<<< HEAD
                     # ── 操作按钮 ──────────────────────────────────────────
                     st.divider()
                     btn_col1, btn_col2, btn_col3 = st.columns(3)
@@ -300,6 +301,19 @@ if mode == "评审模式":
                             mime="text/markdown",
                         )
 
+=======
+                    # ── 发布到 GitHub PR ──────────────────────────────────
+                    st.divider()
+                    if st.button("📤 发布到 GitHub PR"):
+                        try:
+                            owner, repo, pr_number = parse_pr_url(pr_url)
+                            comment_body = build_markdown_comment(result)
+                            with st.spinner("正在发布评论..."):
+                                html_url = post_pr_comment(owner, repo, pr_number, comment_body)
+                            st.success(f"✅ 评论已发布：{html_url}")
+                        except Exception as post_err:
+                            st.error(f"发布失败：{post_err}")
+>>>>>>> main
             except Exception as e:
                 st.error(f"出错了：{e}")
 
