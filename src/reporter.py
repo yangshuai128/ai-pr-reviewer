@@ -1,11 +1,65 @@
 """
+<<<<<<< HEAD
+模块6：报告生成（命令行版 + GitHub Markdown 版）
+把分析结果格式化成人类可读的报告：整体总结 / 各文件 总结·风险·建议。
+=======
 模块6：报告生成（命令行版 + Markdown 评论版）
 - format_report：命令行纯文本报告
 - build_markdown_comment：GitHub PR 评论用的 Markdown，复用 analyzer 输出的字段结构
+>>>>>>> main
 """
 
 
 def build_markdown_comment(result: dict) -> str:
+<<<<<<< HEAD
+    """生成适合发布到 GitHub PR 的 Markdown 格式评审报告。
+    接受 run_review() 返回的完整 result dict（含 pr_title 和 analysis）。
+    """
+    analysis = result.get("analysis") or {}
+    pr_title = result.get("pr_title", "")
+    lines = [
+        f"## 🤖 AI PR Review 报告：{pr_title}",
+        "",
+        "### 📋 整体总结",
+        analysis.get("overall_summary", ""),
+        "",
+    ]
+    for r in analysis.get("file_results", []):
+        lines.append(f"### 📄 `{r.get('filename', '')}`")
+        lines.append(f"**总结**：{r.get('summary', '')}")
+        lines.append("")
+
+        risks = r.get("risks", [])
+        if risks:
+            lines.append("**风险点：**")
+            for rk in risks:
+                level = rk.get("level", "?")
+                conf = rk.get("confidence", "?")
+                desc = rk.get("description", "")
+                source = rk.get("source", "")
+                source_tag = {"claude": "🧠 Claude", "ruff": "🔧 ruff", "both": "🛡️ 双重确认"}.get(source, source)
+                lines.append(f"- `{level}风险/置信度{conf}` [{source_tag}] {desc}")
+        else:
+            lines.append("**风险点：** 未发现明显风险")
+
+        static_issues = r.get("static_issues", [])
+        if static_issues:
+            lines.append("")
+            lines.append("**静态检查（ruff）：**")
+            for s in static_issues:
+                lines.append(f"- `{s.get('code', '?')}` 第{s.get('line', '?')}行 {s.get('message', '')}")
+
+        sugg = r.get("suggestions", [])
+        if sugg:
+            lines.append("")
+            lines.append("**改进建议：**")
+            for s in sugg:
+                lines.append(f"- {s}")
+        lines.append("")
+
+    lines.append("---")
+    lines.append("*由 [AI PR Reviewer](https://github.com/yangshuai128/ai-pr-reviewer) 自动生成*")
+=======
     """把 run_review 返回的 result 转成 GitHub PR 评论 Markdown。
 
     复用字段说明（与 analyzer.py / pipeline.py 输出结构保持一致）：
@@ -83,6 +137,7 @@ def build_markdown_comment(result: dict) -> str:
     lines.append("---")
     lines.append("*本评论由 [ai-pr-reviewer](https://github.com/yangshuai128/ai-pr-reviewer) 自动生成*")
 
+>>>>>>> main
     return "\n".join(lines)
 
 

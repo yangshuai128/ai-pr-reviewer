@@ -81,7 +81,11 @@ def analyze_file(file_context: str, extra_focus: str = "") -> dict:
     """分析单个文件。extra_focus 为用户自定义关注点（来自配置文件，可选）。"""
     focus = f"特别关注：{extra_focus}\n" if extra_focus else ""
     raw = _call(FILE_REVIEW_PROMPT.format(extra_focus=focus, file_context=file_context))
-    return _safe_parse_json(raw)
+    result = _safe_parse_json(raw)
+    # 给每条 Claude 风险打上来源标记
+    for risk in result.get("risks", []):
+        risk.setdefault("source", "claude")
+    return result
 
 
 def analyze_pr(file_contexts: list, pr_header: str, extra_focus: str = "") -> dict:

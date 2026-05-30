@@ -1,0 +1,33 @@
+C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\requests\__init__.py:92: RequestsDependencyWarning: Unable to find acceptable character detection dependency (chardet or charset_normalizer).
+  warnings.warn(
+d:\VScoding\ai-pr-reviewer\src\analyzer.py:41: SyntaxWarning: invalid escape sequence '\{'
+  """健壮解析：找出所有 {...} 候选，从最长的开始尝试 json.loads，失败再兜底。
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    from src.pipeline import run_review; result = run_review('https://github.com/yangshuai128/ai-pr-reviewer/pull/1'); analysis = result['analysis']; risks = [{'file': r['filename'], 'source': rk.get('source','MISSING'), 'line': rk.get('line'), 'desc': rk.get('description','')[:50]} for r in analysis['file_results'] for rk in r.get('risks',[])] if analysis else []; [print(f'{i+1}. source={rk["source"]} line={rk["line"]} file={rk["file"]} {rk["desc"]}') for i, rk in enumerate(risks)] or print('no risks') if risks else print('no risks')
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\VScoding\ai-pr-reviewer\src\pipeline.py", line 10, in <module>
+    from src.analyzer import analyze_pr
+  File "d:\VScoding\ai-pr-reviewer\src\analyzer.py", line 13, in <module>
+    from anthropic import Anthropic
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\anthropic\__init__.py", line 5, in <module>
+    from . import types
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\anthropic\types\__init__.py", line 6, in <module>
+    from .usage import Usage as Usage
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\anthropic\types\usage.py", line 6, in <module>
+    from .._models import BaseModel
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\anthropic\_models.py", line 38, in <module>
+    import pydantic
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pydantic\__init__.py", line 5, in <module>
+    from ._migration import getattr_migration
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pydantic\_migration.py", line 4, in <module>
+    from pydantic.warnings import PydanticDeprecatedSince20
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pydantic\warnings.py", line 5, in <module>
+    from .version import version_short
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pydantic\version.py", line 7, in <module>
+    from pydantic_core import __version__ as __pydantic_core_version__
+  File "C:\Users\Administrator\AppData\Roaming\Python\Python314\site-packages\pydantic_core\__init__.py", line 8, in <module>
+    from ._pydantic_core import (
+    ...<21 lines>...
+    )
+ImportError: DLL load failed while importing _pydantic_core: 找不到指定的程序。

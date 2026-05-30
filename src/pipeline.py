@@ -48,4 +48,47 @@ def run_review(pr_url: str, with_static: bool = True) -> dict:
                 code = added_code_from_patch(patch_by_name.get(fname, ""))
                 r["static_issues"] = analyze_python_snippet(fname, code)
 
+    # 阶段A：把 ruff 的 static_issues 提升为 risks，并做 claude+ruff 去重合并
+    for r in analysis["file_results"]:
+        fname = r.get("filename", "")
+        claude_risks = r.get("risks", [])
+        ruff_issues = r.get("static_issues", [])
+
+        # 把 ruff 条目转成 risk 格式（保留 source="ruff"）
+        ruff_risks = [{
+            "line": issue.get("line"),
+            "description": f"[{issue.get('code', '?')}] {issue.get('message', '')}",
+            "level": "低",
+            "confidence": "高",
+            "source": "ruff",
+            "file": fname,
+        } for issue in ruff_issues]
+
+        # 给 claude risks 补上 file 字段（方便比较）
+        for rk in claude_risks:
+            rk.setdefault("file", fname)
+
+        # 去重合并：同文件 + 行号差 ≤ 3 的 claude/ruff 对 → 合并成 "both"
+        merged = list(claude_risks)  # 从 claude 结果开始
+        for ruff_rk in ruff_risks:
+            ruff_line = ruff_rk.get("line")
+            matched = False
+            for claude_rk in merged:
+                if claude_rk.get("source") not in ("claude", "both"):
+                    continue
+                claude_line = claude_rk.get("line")
+                # 行号都存在时按差值比较；任一为 None 时只按文件匹配
+                if ruff_line is not None and claude_line is not None:
+                    same_location = abs(ruff_line - claude_line) <= 3
+                else:
+                    same_location = True  # 无行号时只要同文件就合并
+                if claude_rk.get("file") == ruff_rk.get("file") and same_location:
+                    claude_rk["source"] = "both"
+                    matched = True
+                    break
+            if not matched:
+                merged.append(ruff_rk)
+
+        r["risks"] = merged
+
     return {"pr_title": pr_data["title"], "analysis": analysis}
