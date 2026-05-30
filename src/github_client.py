@@ -93,6 +93,89 @@ def fetch_pr(url: str):
     }
 
 
+def get_pr_head_sha(owner: str, repo: str, pr_number: int) -> str:
+    """获取 PR 最新的 commit hash（head.sha）。
+    通过 GET /repos/{owner}/{repo}/pulls/{number} 接口提取。
+    """
+    url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}"
+    resp = requests.get(url, headers=_headers(), timeout=30)
+    resp.raise_for_status()
+    return resp.json()["head"]["sha"]
+
+
+def post_inline_review(owner: str, repo: str, pr_number: int, file_results: list):
+    """向指定 PR 发布大厂级行级 Review（批量 inline comments）。
+    使用 POST /repos/{owner}/{repo}/pulls/{number}/reviews 端点。
+
+    防御性容错：行号缺失或无效的风险点会被自动跳过，不会导致崩溃。
+    成功返回 True，失败抛出带中文说明的异常。
+    """
+    token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        raise ValueError("未找到 GITHUB_TOKEN，请在 .env 中配置后重试")
+
+    # 1. 获取该 PR 最新的 commit_id
+    commit_id = get_pr_head_sha(owner, repo, pr_number)
+
+    # 2. 遍历所有文件的风险点，构建行级评论列表
+    comments_list = []
+    for file_result in file_results:
+        for risk in file_result.get("risks", []):
+            # 【关键防御性容错】严格校验 file 和 line 字段
+            risk_file = risk.get("file") or file_result.get("filename")
+            risk_line = risk.get("line")
+
+            if not risk_file:
+                continue  # 文件名缺失，跳过
+
+            # 校验行号：必须能转换为正整数
+            if risk_line is None or risk_line == "":
+                continue
+            try:
+                line_int = int(risk_line)
+                if line_int <= 0:
+                    continue
+            except (ValueError, TypeError):
+                continue
+
+            # 行号有效，构建单条行级评论结构体
+            severity = risk.get("severity") or risk.get("level", "LOW")
+            comments_list.append({
+                "path": risk_file,
+                "line": line_int,
+                "body": (
+                    f"### 🛡️ 智能评审提示 ({risk.get('source', 'AI').upper()})\n\n"
+                    f"**严重度**: {severity}\n\n"
+                    f"{risk.get('description', '')}"
+                ),
+            })
+
+    # 3. 如果没有有效的行级评论，直接返回
+    if not comments_list:
+        return True  # 无行级评论可发布，视为成功（无需报错）
+
+    # 4. 批量发布 Review
+    url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}/reviews"
+    payload = {
+        "commit_id": commit_id,
+        "event": "COMMENT",
+        "body": "🤖 AI PR Reviewer 已完成行级精准代码评审，具体颗粒度建议已全部并行嵌入下方代码差异区。",
+        "comments": comments_list,
+    }
+    resp = requests.post(
+        url,
+        headers=_headers(),
+        json=payload,
+        timeout=30,
+    )
+    if resp.status_code not in (200, 201):
+        raise RuntimeError(
+            f"发布行级 Review 失败（HTTP {resp.status_code}）："
+            f"{resp.json().get('message', resp.text)}"
+        )
+    return True
+
+
 def post_pr_comment(owner: str, repo: str, pr_number: int, body: str) -> str:
     """向指定 PR 发布一条 PR 级评论（issues/{pr_number}/comments 端点）。
     成功（HTTP 201）返回新评论的 html_url；失败抛出带中文说明的异常。

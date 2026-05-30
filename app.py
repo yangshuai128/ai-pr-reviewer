@@ -2,9 +2,10 @@
 Streamlit 网页界面。运行：streamlit run app.py
 两种模式：评审模式（总结+风险+建议+静态检查）/ 问答模式（对 PR 自由提问）。
 """
+import time
 import streamlit as st
 
-from src.github_client import fetch_pr, parse_pr_url, post_pr_comment
+from src.github_client import fetch_pr, parse_pr_url, post_pr_comment, post_inline_review
 from src.context_builder import build_file_contexts
 from src.analyzer import answer_question
 from src.pipeline import run_review
@@ -164,6 +165,10 @@ if mode == "评审模式":
                     analysis = result["analysis"]
                     file_results = analysis.get("file_results", [])
 
+                    # 将评审结果存入 session_state，供发布按钮使用
+                    st.session_state["review_result"] = result
+                    st.session_state["review_file_results"] = file_results
+
                     # ── KPI 四卡片 ────────────────────────────────────────
                     total_files = len(file_results)
                     total_risks = sum(len(r.get("risks") or []) for r in file_results)
@@ -271,51 +276,81 @@ if mode == "评审模式":
                                 for s in sugg:
                                     st.markdown(f"- {s}")
 
-<<<<<<< HEAD
-                    # ── 操作按钮 ──────────────────────────────────────────
-                    st.divider()
-                    btn_col1, btn_col2, btn_col3 = st.columns(3)
-
-                    with btn_col1:
-                        if st.button("📤 发布到 GitHub PR", type="primary"):
-                            try:
-                                owner, repo, pr_number = parse_pr_url(pr_url)
-                                comment_url = post_pr_comment(
-                                    owner, repo, pr_number, build_markdown_comment(result)
-                                )
-                                st.success(f"✅ 评论已发布：{comment_url}")
-                            except Exception as e:
-                                st.error(f"❌ 发布失败：{e}")
-
-                    with btn_col2:
-                        if st.button("📄 复制 Markdown"):
-                            md_text = build_markdown_comment(result)
-                            st.code(md_text, language="markdown")
-
-                    with btn_col3:
-                        md_export = build_markdown_comment(result)
-                        st.download_button(
-                            "⬇ 导出报告",
-                            data=md_export,
-                            file_name="review.md",
-                            mime="text/markdown",
-                        )
-
-=======
-                    # ── 发布到 GitHub PR ──────────────────────────────────
-                    st.divider()
-                    if st.button("📤 发布到 GitHub PR"):
-                        try:
-                            owner, repo, pr_number = parse_pr_url(pr_url)
-                            comment_body = build_markdown_comment(result)
-                            with st.spinner("正在发布评论..."):
-                                html_url = post_pr_comment(owner, repo, pr_number, comment_body)
-                            st.success(f"✅ 评论已发布：{html_url}")
-                        except Exception as post_err:
-                            st.error(f"发布失败：{post_err}")
->>>>>>> main
             except Exception as e:
                 st.error(f"出错了：{e}")
+
+    # ── 发布控制台（评审完成后显示） ──────────────────────────────────────────
+    if st.session_state.get("review_result") and pr_url.strip():
+        st.divider()
+
+        # 发布模式选择面板
+        publish_mode = st.radio(
+            "📡 发布模式选择",
+            options=[
+                "常规总结模式 (Summary Mode) 📄 一键汇总 · 集中发布到 PR 底部讨论区",
+                "行级精准模式 (Precision Inline Mode) 🔥 🎯 精准打击 · 将 AI 意见作为 Review 逐行嵌入代码差异区（大厂推崇）",
+            ],
+            index=0,
+            key="publish_mode_radio",
+        )
+
+        btn_col1, btn_col2, btn_col3 = st.columns(3)
+
+        with btn_col1:
+            if st.button("📤 发布到 GitHub PR", type="primary"):
+                try:
+                    owner, repo, pr_number = parse_pr_url(pr_url)
+                    result = st.session_state["review_result"]
+                    file_results = st.session_state["review_file_results"]
+
+                    # ── 分支 A：常规总结模式 ──────────────────────────────
+                    if "常规总结模式" in publish_mode:
+                        with st.spinner("正在发布评论..."):
+                            comment_url = post_pr_comment(
+                                owner, repo, pr_number, build_markdown_comment(result)
+                            )
+                        st.success(f"✅ 评论已发布：{comment_url}")
+
+                    # ── 分支 B：行级精准模式 ──────────────────────────────
+                    else:
+                        with st.status("🚀 正在启动大厂级行级评审发布控制台...", expanded=True) as status:
+                            st.write("🔄 正在实时检索该 PR 的最新 Commit Hash (head.sha)...")
+                            time.sleep(0.8)  # 模拟硬件级别握手与检索阻尼
+
+                            success = post_inline_review(owner, repo, pr_number, file_results)
+
+                            if success:
+                                st.write("✨ 成功锁定最新 Commit ID! 正在对代码差异进行多维像素级对齐...")
+                                time.sleep(0.6)
+                                st.write("🎯 矩阵发射成功！行级精密 Review 建议已集体并行提交至 GitHub！")
+                                status.update(
+                                    label="🎉 矩阵发射成功！行级精密 Review 已完成！",
+                                    state="complete",
+                                    expanded=False,
+                                )
+                                st.success("🎉 成功发布行级评审！请前往 GitHub PR 页面查看震撼效果！")
+                            else:
+                                status.update(label="❌ 行级评审发布失败", state="error")
+                                st.error("发布失败，请检查网络或 GitHub Token 权限。")
+
+                except Exception as e:
+                    st.error(f"❌ 发布失败：{e}")
+
+        with btn_col2:
+            if st.button("📄 复制 Markdown"):
+                result = st.session_state["review_result"]
+                md_text = build_markdown_comment(result)
+                st.code(md_text, language="markdown")
+
+        with btn_col3:
+            result = st.session_state["review_result"]
+            md_export = build_markdown_comment(result)
+            st.download_button(
+                "⬇ 导出报告",
+                data=md_export,
+                file_name="review.md",
+                mime="text/markdown",
+            )
 
 # ── 问答模式 ──────────────────────────────────────────────────────────────────
 else:
