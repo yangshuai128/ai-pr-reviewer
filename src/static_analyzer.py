@@ -31,6 +31,7 @@ def analyze_python_snippet(filename: str, code: str):
             "line": d.get("location", {}).get("row"),
             "code": d.get("code"),
             "message": d.get("message"),
+            "source": "ruff",
         } for d in json.loads(out)]
     except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
         return []  # ruff 未安装或出错时静默降级
