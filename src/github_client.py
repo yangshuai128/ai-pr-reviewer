@@ -6,6 +6,7 @@
 import re
 import os
 import requests
+from urllib.parse import unquote
 from dotenv import load_dotenv
 
 load_dotenv()  # 读取 .env 里的密钥
@@ -14,7 +15,15 @@ load_dotenv()  # 读取 .env 里的密钥
 def parse_pr_url(url: str):
     """从 PR 链接中解析出 owner / repo / pr_number。
     支持形如 https://github.com/owner/repo/pull/123 的链接。
+
+    URL 清洗（自评审 PR #2 时发现的真实 bug）：
+    1. unquote 解码 URL 编码字符（如 %20 → 空格）
+    2. 截断中文字符及其后内容（用户粘贴时可能带入中文说明文字）
+    3. strip 去除首尾空白
     """
+    url = unquote(url).strip()
+    # 截断第一个中文字符（及之后所有内容），避免脏 URL 干扰正则匹配
+    url = re.sub(r'[\u4e00-\u9fff\s].*$', '', url)
     pattern = r"github\.com/([^/]+)/([^/]+)/pull/(\d+)"
     match = re.search(pattern, url)
     if not match:
@@ -77,7 +86,9 @@ def fetch_pr(url: str):
 
     return {
         "title": pr_data.get("title", ""),
-        "description": pr_data.get("body") or "",
+        # 防御性处理：body 字段可能为 None（PR 无描述时 GitHub API 返回 null）
+        # 用 (... or "") 避免 None，再 .strip() 去除首尾空白，防止 NoneType 崩溃
+        "description": (pr_data.get("body") or "").strip(),
         "files": files,
     }
 

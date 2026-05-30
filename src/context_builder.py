@@ -57,5 +57,8 @@ def build_file_contexts(pr_data: dict):
 
 
 def build_pr_summary_header(pr_data: dict):
-    """生成 PR 整体描述，用于总结环节。"""
-    return f"PR 标题：{pr_data['title']}\nPR 描述：{pr_data['description'][:1000]}"
+    """生成 PR 整体描述，用于总结环节。
+    防御性处理：description 可能为 None（GitHub PR 无描述时），直接切片会崩溃。
+    """
+    description = (pr_data.get("description") or "").strip()
+    return f"PR 标题：{pr_data.get('title', '')}\nPR 描述：{description[:1000]}"
