@@ -32,8 +32,15 @@ if mode == "评审模式":
                     analysis = result["analysis"]
                     st.success("评审完成！")
 
-                    # ── 模块A：统计卡片 ──────────────────────────────────
+                    import pandas as pd
+                    import plotly.express as px
+
                     file_results = analysis.get("file_results", [])
+
+                    # ══ 评审概览 ══════════════════════════════════════════
+                    st.subheader("📊 评审概览")
+
+                    # ── 模块A：统计卡片 ──────────────────────────────────
                     total_risks = sum(len(r.get("risks") or []) for r in file_results)
                     high_conf_risks = sum(
                         1 for r in file_results
@@ -45,29 +52,43 @@ if mode == "评审模式":
                     col2.metric("⚠️ 风险点总数", total_risks)
                     col3.metric("🎯 高置信度风险", high_conf_risks)
 
-                    # ── 模块B：文件改动统计柱状图 ─────────────────────────
-                    st.subheader("📊 文件改动统计")
-                    import pandas as pd
-                    chart_data = pd.DataFrame({
-                        "文件": [r.get("filename", "未知") for r in file_results],
-                        "风险点数量": [len(r.get("risks") or []) for r in file_results],
-                    }).set_index("文件")
-                    st.bar_chart(chart_data)
+                    # ── 模块B：文件改动统计 - 水平柱状图 ─────────────────
+                    df_bar = pd.DataFrame({
+                        "文件名": [r.get("filename", "未知") for r in file_results],
+                        "风险数": [len(r.get("risks") or []) for r in file_results],
+                    })
+                    fig_bar = px.bar(
+                        df_bar, x="风险数", y="文件名", orientation="h",
+                        title="各文件风险点数量",
+                        labels={"风险数": "风险点数量", "文件名": ""},
+                        color_discrete_sequence=["#1890ff"],
+                    )
+                    fig_bar.update_layout(yaxis={"categoryorder": "total ascending"})
+                    st.plotly_chart(fig_bar, use_container_width=True)
 
-                    # ── 模块C：风险等级分布 ───────────────────────────────
-                    st.subheader("🎚️ 风险等级分布")
+                    # ── 模块C：风险等级分布 - 饼图 ───────────────────────
                     level_counts = {"高": 0, "中": 0, "低": 0}
                     for r in file_results:
                         for rk in (r.get("risks") or []):
                             level = rk.get("level", "")
                             if level in level_counts:
                                 level_counts[level] += 1
-                    level_df = pd.DataFrame({
-                        "风险等级": list(level_counts.keys()),
-                        "数量": list(level_counts.values()),
-                    }).set_index("风险等级")
-                    st.bar_chart(level_df)
+                    if sum(level_counts.values()) == 0:
+                        st.info("本 PR 未发现明显风险")
+                    else:
+                        df_pie = pd.DataFrame({
+                            "等级": list(level_counts.keys()),
+                            "数量": list(level_counts.values()),
+                        })
+                        fig_pie = px.pie(
+                            df_pie, names="等级", values="数量",
+                            title="风险等级分布",
+                            color="等级",
+                            color_discrete_map={"高": "#ff4d4f", "中": "#faad14", "低": "#1890ff"},
+                        )
+                        st.plotly_chart(fig_pie, use_container_width=True)
 
+                    # ══ 评审详情 ══════════════════════════════════════════
                     st.subheader("📋 整体总结")
                     st.write(analysis["overall_summary"])
 
