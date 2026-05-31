@@ -3,7 +3,8 @@
 > 🚀 **七牛云 × XEngineer 暑期实训营 · 参赛作品**
 
 ## 🎥 Demo 演示视频
-**👉 [点击此处观看作品演示视频 (Bilibili)](请在此处填入你的B站视频链接)**
+**👉 [点击此处观看作品演示视频 (Bilibili)]
+【【七牛云×XEngineer实训营】AI PR Reviewer作品演示】 https://www.bilibili.com/video/BV1SLVQ6cEw3/?share_source=copy_web&vd_source=ed1d1da6dd686d82ccbd039aa792af70
 *(注：请评委老师优先观看视频，内含核心的"前后端一体化行级精准评论"功能震撼演示)*
 
 ---
