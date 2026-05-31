@@ -200,16 +200,33 @@ def _page_review():
 
     col_select, col_url, col_btn = st.columns([2, 5, 1.5])
     with col_select:
-        example_choice = st.selectbox("示例 PR", list(EXAMPLE_PRS.keys()), label_visibility="collapsed")
-    if example_choice != "自定义...":
-        st.session_state["pr_url"] = EXAMPLE_PRS[example_choice]
+        # 找到当前 pr_url 对应的示例选项（用于回显），默认"自定义..."
+        current_url = st.session_state.get("pr_url", "")
+        reverse_map = {v: k for k, v in EXAMPLE_PRS.items() if v}
+        default_idx = 0
+        if current_url in reverse_map:
+            keys = list(EXAMPLE_PRS.keys())
+            default_idx = keys.index(reverse_map[current_url])
+        example_choice = st.selectbox(
+            "示例 PR",
+            list(EXAMPLE_PRS.keys()),
+            index=default_idx,
+            label_visibility="collapsed",
+        )
     with col_url:
+        # 如果用户选了示例，用示例 URL 填充；否则保留 session_state 里的值
+        if example_choice != "自定义...":
+            prefill = EXAMPLE_PRS[example_choice] or ""
+        else:
+            prefill = st.session_state.get("pr_url") or ""
         pr_url = st.text_input(
             "PR 链接",
-            value=st.session_state.get("pr_url", ""),
+            value=prefill,
             placeholder="https://github.com/owner/repo/pull/123",
             label_visibility="collapsed",
         )
+    # 防御性处理：确保 pr_url 始终是字符串
+    pr_url = pr_url or ""
     st.session_state["pr_url"] = pr_url
 
     mode = st.radio("模式", ["评审模式", "问答模式"], horizontal=True)
