@@ -21,9 +21,9 @@ def parse_pr_url(url: str):
     2. 截断中文字符及其后内容（用户粘贴时可能带入中文说明文字）
     3. strip 去除首尾空白
     """
-    url = unquote(url).strip()
-    # 截断第一个中文字符（及之后所有内容），避免脏 URL 干扰正则匹配
-    url = re.sub(r'[\u4e00-\u9fff\s].*$', '', url)
+    url = unquote(url or "").strip()
+    # 只截断中文字符（及之后内容），不截断空白——空白已由 strip() 处理
+    url = re.sub(r'[\u4e00-\u9fff].*$', '', url).strip()
     pattern = r"github\.com/([^/]+)/([^/]+)/pull/(\d+)"
     match = re.search(pattern, url)
     if not match:

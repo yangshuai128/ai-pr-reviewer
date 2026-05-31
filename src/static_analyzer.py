@@ -22,9 +22,13 @@ def analyze_python_snippet(filename: str, code: str):
     try:
         proc = subprocess.run(
             ["ruff", "check", "--output-format=json", tmp],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",   # 明确指定 UTF-8，避免 Windows GBK 解码失败
+            errors="replace",   # 无法解码的字节用 ? 替换，不崩溃
+            timeout=30,
         )
-        out = proc.stdout.strip()
+        out = (proc.stdout or "").strip()
         if not out:
             return []
         return [{
@@ -33,7 +37,8 @@ def analyze_python_snippet(filename: str, code: str):
             "message": d.get("message"),
             "source": "ruff",
         } for d in json.loads(out)]
-    except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError,
+            AttributeError, OSError):
         return []  # ruff 未安装或出错时静默降级
     finally:
         os.unlink(tmp)
